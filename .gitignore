@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+*.local.json
+.DS_Store
+node_modules/
+.out/
+out/
+dist/
+coverage/
+/docs/TASKS.md
+/docs/HANDOFF.md
