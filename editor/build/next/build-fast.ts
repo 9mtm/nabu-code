@@ -271,7 +271,7 @@ export function parseNullSeparatedPaths(output: Buffer): string[] {
 export async function collectSnapshot(repoRoot: string): Promise<BuildFastSnapshot> {
 	const [headOutput, trackedOutput, untrackedOutput] = await Promise.all([
 		runGit(repoRoot, ['rev-parse', 'HEAD']),
-		runGit(repoRoot, ['diff', '--name-only', '-z', '--no-renames', 'HEAD', '--', ...BUILD_SCOPES]),
+		runGit(repoRoot, ['diff', '--relative', '--name-only', '-z', '--no-renames', 'HEAD', '--', ...BUILD_SCOPES]),
 		runGit(repoRoot, ['ls-files', '--others', '--exclude-standard', '-z', '--', ...BUILD_SCOPES]),
 	]);
 	const head = headOutput.toString('utf8').trim();
@@ -286,7 +286,7 @@ async function getCommittedPaths(repoRoot: string, savedHead: string, currentHea
 	if (savedHead === currentHead) {
 		return [];
 	}
-	const output = await runGit(repoRoot, ['diff', '--name-only', '-z', '--no-renames', savedHead, currentHead, '--', ...BUILD_SCOPES]);
+	const output = await runGit(repoRoot, ['diff', '--name-only', '-z', '--no-renames', '--relative', savedHead, currentHead, '--', ...BUILD_SCOPES]);
 	return parseNullSeparatedPaths(output);
 }
 

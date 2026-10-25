@@ -10,3 +10,5 @@ dist/
 coverage/
 /docs/TASKS.md
 /docs/HANDOFF.md
+.local-runtime/
+/docs/design/

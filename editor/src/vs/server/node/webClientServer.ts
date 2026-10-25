@@ -414,6 +414,12 @@ export class WebClientServer {
 		}
 
 		const workbenchWebConfiguration = {
+			configurationDefaults: {
+				'chat.disableAIFeatures': true,
+				'workbench.secondarySideBar.defaultVisibility': 'hidden',
+				'workbench.startupEditor': 'none',
+				'telemetry.telemetryLevel': 'off'
+			},
 			remoteAuthority,
 			serverBasePath: basePath,
 			_wrapWebWorkerExtHostInIframe,

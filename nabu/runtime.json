@@ -1,0 +1,6 @@
+{
+  "name": "nabu-code-runtime",
+  "protocolVersion": 1,
+  "editorVersion": "1.143.1",
+  "entry": "dpro/editor-runtime.mjs"
+}

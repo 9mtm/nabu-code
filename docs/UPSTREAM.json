@@ -5,5 +5,5 @@
   "releasePublished": "2026-10-22T23:04:14Z",
   "archiveSha256": "8151d6d8f21189d80779fb4bcd94e3f65d8992399f26d6e6ac3301855ae2f7cd",
   "sourceDirectory": "editor",
-  "modifications": "None. Upstream license and notices retained."
+  "modifications": "Internal Dpro editor web configuration, nested build-path fixes and editor branding. No standalone product is shipped. Runtime adapter source is under nabu/."
 }

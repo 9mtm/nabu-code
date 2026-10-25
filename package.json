@@ -1,0 +1,14 @@
+{
+  "name": "nabu-code",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Internal editor runtime for the Dpro desktop Code application",
+  "author": "Mohamed Alarade",
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "prepare:editor": "node scripts/prepare.mjs",
+    "start": "node scripts/dev.mjs",
+    "test": "node --test tests/editor-runtime.test.mjs"
+  }
+}

@@ -1,5 +1,5 @@
 # Distribution status
 
-Nabu-specific work is intended to be proprietary. Imported VS Code source retains its upstream MIT license and notices. Private repository visibility does not change third-party licenses.
+The internal editor implementation remains in a private repository. Dpro's public repository contains the optional native adapter, footer navigation and tests. No standalone Nabu application is distributed. Imported VS Code retains its upstream MIT license and notices; private visibility does not change third-party licensing.
 
-This is open-source editor source, not the Microsoft-branded distribution. Review branding, extension services, telemetry and third-party notices before shipping. No build is produced by this import. See editor/LICENSE.txt and docs/UPSTREAM.json.
+The verified artifact is a local Dpro development preview. Self-contained editor staging, a signed installer, extension-service review and installed-app updates remain open. Generated binaries, profiles, connection tokens and account fixtures do not belong in source publication.
