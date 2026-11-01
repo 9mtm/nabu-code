@@ -1997,7 +1997,7 @@
     "@vscode/web-editors": "^0.0.2-41",
     "dompurify": "^3.4.10",
     "highlight.js": "^11.8.0",
-    "katex": "^0.16.33",
+    "katex": "0.18.2",
     "markdown-it": "^14.2.0",
     "mermaid": "^11.15.0",
     "morphdom": "^2.7.7",
@@ -2016,7 +2016,7 @@
     "@types/markdown-it": "^14.1.2",
     "@types/node": "24.x",
     "@types/picomatch": "^2.3.0",
-    "zod": "4.4.3",
+    "zod": "4.6.6",
     "@types/vscode-notebook-renderer": "^1.60.0",
     "@types/vscode-webview": "^1.57.0",
     "@vscode/markdown-it-katex": "^1.1.1",
@@ -2027,5 +2027,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/microsoft/vscode.git"
+  },
+  "overrides": {
+    "katex": "0.18.2",
+    "zod": "4.6.6"
   }
 }
