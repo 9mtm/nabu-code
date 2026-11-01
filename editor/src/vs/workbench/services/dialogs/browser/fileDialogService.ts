@@ -13,6 +13,7 @@ import { HTMLFileSystemProvider } from '../../../../platform/files/browser/htmlF
 import { localize } from '../../../../nls.js';
 import { getMediaOrTextMime } from '../../../../base/common/mime.js';
 import { basename } from '../../../../base/common/resources.js';
+import '../../../../base/browser/girruDesktop.js';
 import { getActiveWindow, triggerDownload, triggerUpload } from '../../../../base/browser/dom.js';
 import Severity from '../../../../base/common/severity.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
@@ -83,6 +84,16 @@ export class FileDialogService extends AbstractFileDialogService implements IFil
 	}
 
 	async pickFolderAndOpen(options: IPickAndOpenOptions): Promise<void> {
+		const bridge = getActiveWindow().girruCode;
+		if (bridge) {
+			const selected = await bridge.pickDirectory();
+			if (selected) {
+				const local = URI.file(selected);
+				const folderUri = local.with({ scheme: this.environmentService.remoteAuthority ? Schemas.vscodeRemote : Schemas.file, authority: this.environmentService.remoteAuthority });
+				await this.hostService.openWindow([{ folderUri }], { forceReuseWindow: true, remoteAuthority: this.environmentService.remoteAuthority });
+			}
+			return;
+		}
 		const schema = this.getFileSystemSchema(options);
 
 		if (!options.defaultUri) {

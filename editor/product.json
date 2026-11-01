@@ -1,4 +1,10 @@
 {
+	"extensionsGallery": {
+		"serviceUrl": "https://open-vsx.org/vscode/gallery",
+		"itemUrl": "https://open-vsx.org/vscode/item",
+		"resourceUrlTemplate": "https://open-vsx.org/vscode/unpkg/{publisher}/{name}/{version}/{path}",
+		"extensionUrlTemplate": "https://open-vsx.org/vscode/gallery/{publisher}/{name}/latest"
+	},
 	"nameShort": "Nabu Code",
 	"nameLong": "Nabu Code",
 	"applicationName": "nabu-code",
