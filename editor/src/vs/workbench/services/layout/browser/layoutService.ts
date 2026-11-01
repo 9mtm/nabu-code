@@ -734,6 +734,9 @@ export interface IWorkbenchLayoutService extends ILayoutService {
 }
 
 export function shouldShowCustomTitleBar(configurationService: IConfigurationService, window: Window, menuBarToggled?: boolean): boolean {
+	// The embedding desktop owns the shared command bar; file tabs stay in the editor.
+	if (window.girruCode) { return false; }
+
 	if (!hasCustomTitlebar(configurationService)) {
 		return false;
 	}
