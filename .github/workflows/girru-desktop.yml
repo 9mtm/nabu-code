@@ -101,6 +101,10 @@ jobs:
           node girru/packages/desktop/scripts/stage-nabu.cjs --nabu editor-source --out girru/packages/desktop/nabu-runtime
           node girru/packages/desktop/scripts/verify-code.cjs girru/packages/desktop/nabu-runtime
           node -e "require('fs').writeFileSync('girru/packages/desktop/nabu-runtime/provenance.json',JSON.stringify({editor:process.env.GITHUB_SHA,girru:process.env.GIRRU_SHA,platform:'${{ matrix.platform }}'},null,2))"
+      - name: Remove generated editor build dependencies
+        shell: bash
+        run: |
+          node -e "const fs=require('fs'),path=require('path');const root='editor-source/editor';for(const rel of ['node_modules','remote/node_modules','out','.build'])fs.rmSync(path.join(root,rel),{recursive:true,force:true});for(const item of fs.readdirSync(path.join(root,'extensions'),{withFileTypes:true}))if(item.isDirectory())fs.rmSync(path.join(root,'extensions',item.name,'node_modules'),{recursive:true,force:true});"
       - name: Stage production Girru runtime
         shell: bash
         working-directory: girru
