@@ -116,7 +116,10 @@ jobs:
         run: node packages/desktop/scripts/verify-release.cjs
       - name: Collect checksummed installers
         working-directory: girru
-        run: node packages/desktop/scripts/collect-release.cjs ${{ matrix.platform }}
+        shell: bash
+        run: |
+          node packages/desktop/scripts/collect-release.cjs ${{ matrix.platform }}
+          node -e "const fs=require('fs'),crypto=require('crypto');const name='BUILD-PROVENANCE-${{ matrix.platform }}.json',root='packages/desktop/release/publish/';const bytes=fs.readFileSync('packages/desktop/nabu-runtime/provenance.json');fs.writeFileSync(root+name,bytes);fs.appendFileSync(root+'SHA256SUMS-${{ matrix.platform }}.txt',crypto.createHash('sha256').update(bytes).digest('hex')+'  '+name+'\n')"
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.platform }}
