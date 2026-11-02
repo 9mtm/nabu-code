@@ -74,7 +74,7 @@ jobs:
           npm --prefix editor run build-fast -- --client-only
           npm --prefix editor run gulp -- transpile-extensions compile-extension-media copy-codicons
           npm --prefix editor run typecheck-client
-          node --test tests/editor-runtime.test.mjs
+          node --test tests/editor-runtime.test.mjs tests/signing-read-limit.test.cjs
       - name: Install locked Girru dependencies
         shell: bash
         working-directory: girru
@@ -116,7 +116,11 @@ jobs:
         working-directory: girru
         shell: bash
         run: |
-          if [ "$RUNNER_OS" = "macOS" ]; then ulimit -n 8192; fi
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            ulimit -n 8192
+            export GIRRU_DESKTOP_PACKAGE="$PWD/packages/desktop/package.json"
+            export NODE_OPTIONS="$NODE_OPTIONS --require=$GITHUB_WORKSPACE/editor-source/scripts/limit-signing-reads.cjs"
+          fi
           npm --prefix packages/desktop run ${{ matrix.target }}
       - name: Verify complete unpacked application
         working-directory: girru
