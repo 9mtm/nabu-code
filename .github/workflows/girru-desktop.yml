@@ -114,7 +114,10 @@ jobs:
           node packages/desktop/scripts/stage-payload.cjs --root-modules .release-empty-modules
       - name: Build installers
         working-directory: girru
-        run: npm --prefix packages/desktop run ${{ matrix.target }}
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then ulimit -n 8192; fi
+          npm --prefix packages/desktop run ${{ matrix.target }}
       - name: Verify complete unpacked application
         working-directory: girru
         run: node packages/desktop/scripts/verify-release.cjs
