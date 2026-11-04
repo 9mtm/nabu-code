@@ -1,0 +1,141 @@
+name: Code for the Girru Store
+# CODE-STORE-01: builds the Code editor runtime once per platform, packs it with Girru's own
+# packer (plain files only, size + SHA-256), and optionally drafts a release of
+# Dpro-at/girru-store with the four archives plus a pull request that lists them in the
+# Store's index. Girru then installs Code from the Store; the Girru release no longer carries it.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Code version (x.y.z)
+        required: true
+        type: string
+      girru_sha:
+        description: Exact Girru main revision whose stager, verifier and packer to use
+        required: true
+        type: string
+      publish:
+        description: Draft the girru-store release and open its index pull request
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: code-store-runtime-${{ inputs.version }}
+  cancel-in-progress: false
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: macos-15, platform: darwin-arm64}
+          - {os: macos-15-intel, platform: darwin-x64}
+          - {os: windows-latest, platform: win32-x64}
+          - {os: ubuntu-22.04, platform: linux-x64}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      npm_config_fund: 'false'
+      npm_config_audit: 'false'
+      npm_config_fetch_retries: '5'
+      NODE_OPTIONS: '--max-old-space-size=4096'
+      GIRRU_SHA: ${{ inputs.girru_sha }}
+      CODE_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Validate inputs
+        run: node -e "if(!/^[a-f0-9]{40}$/.test(process.env.GIRRU_SHA))throw Error('Exact main SHA required');if(!/^\d{1,6}\.\d{1,6}\.\d{1,6}(-[0-9A-Za-z.-]{1,40})?$/.test(process.env.CODE_VERSION))throw Error('Version like 1.0.0 required')"
+      - uses: actions/checkout@v4
+        with:
+          path: editor-source
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Dpro-at/Girru
+          ref: ${{ inputs.girru_sha }}
+          path: girru
+          persist-credentials: false
+      - name: Verify Girru main revision
+        shell: bash
+        run: test "$(git -C girru ls-remote origin refs/heads/main | cut -f1)" = "$GIRRU_SHA"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.21.0'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Linux native build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libkrb5-dev libx11-dev libxkbfile-dev libsecret-1-dev libssl-dev
+      - name: Install locked editor dependencies
+        run: node editor-source/scripts/install-ci.mjs
+      - name: Audit shipped editor dependencies
+        shell: bash
+        run: |
+          npm audit --prefix editor-source/editor --omit=dev --audit-level=low
+          npm audit --prefix editor-source/editor/remote --omit=dev --audit-level=low
+          for folder in markdown-language-features markdown-math notebook-renderers; do
+            npm audit --prefix "editor-source/editor/extensions/$folder" --omit=dev --audit-level=low
+          done
+      - name: Build and type-check editor
+        shell: bash
+        working-directory: editor-source
+        run: |
+          npm --prefix editor run build-fast -- --client-only
+          npm --prefix editor run gulp -- transpile-extensions compile-extension-media copy-codicons
+          npm --prefix editor run typecheck-client
+          node --test tests/editor-runtime.test.mjs tests/signing-read-limit.test.cjs
+      - name: Stage and verify the Code runtime
+        shell: bash
+        run: |
+          node girru/packages/desktop/scripts/stage-nabu.cjs --nabu editor-source --out code-runtime
+          node girru/packages/desktop/scripts/verify-code.cjs code-runtime
+      - name: Pack for the Girru Store
+        shell: bash
+        run: node girru/packages/desktop/scripts/pack-code-runtime.cjs --runtime code-runtime --version "$CODE_VERSION" --platform ${{ matrix.platform }} --out store-out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: code-${{ matrix.platform }}
+          path: store-out/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  publish:
+    needs: build
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-latest
+    env:
+      CODE_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: code-*
+          path: store-out
+          merge-multiple: true
+      - name: Check all four platforms and write SHA256SUMS
+        shell: bash
+        run: |
+          node -e "const fs=require('fs'),crypto=require('crypto');const v=process.env.CODE_VERSION,lines=[];for(const p of ['darwin-arm64','darwin-x64','win32-x64','linux-x64']){const j=JSON.parse(fs.readFileSync('store-out/girru-code-'+v+'-'+p+'.json','utf8'));const b=fs.readFileSync('store-out/'+j.name);if(j.version!==v||j.platform!==p||b.length!==j.size||crypto.createHash('sha256').update(b).digest('hex')!==j.sha256)throw Error('archive does not match its record: '+p);lines.push(j.sha256+'  '+j.name)}fs.writeFileSync('store-out/SHA256SUMS.txt',lines.join('\\n')+'\\n')"
+          cd store-out && sha256sum -c SHA256SUMS.txt
+      - name: Draft the release in girru-store
+        env:
+          GH_TOKEN: ${{ secrets.GIRRU_STORE_RELEASE_TOKEN }}
+        run: gh release create "code-v$CODE_VERSION" store-out/*.tar.gz store-out/SHA256SUMS.txt --repo Dpro-at/girru-store --draft --title "Code $CODE_VERSION" --notes "The Code editor for Girru, one archive per platform. Girru checks each archive against the size and SHA-256 in the Store's index; the same checksums are in SHA256SUMS.txt."
+      - name: Open the index pull request in girru-store
+        env:
+          GH_TOKEN: ${{ secrets.GIRRU_STORE_RELEASE_TOKEN }}
+        shell: bash
+        run: |
+          gh repo clone Dpro-at/girru-store store -- --depth 1
+          node -e "const fs=require('fs');const v=process.env.CODE_VERSION,f='store/apps/code/manifest.json',m=JSON.parse(fs.readFileSync(f,'utf8')),archives={};for(const p of ['darwin-arm64','darwin-x64','win32-x64','linux-x64']){const j=JSON.parse(fs.readFileSync('store-out/girru-code-'+v+'-'+p+'.json','utf8'));archives[p]={url:'https://github.com/Dpro-at/girru-store/releases/download/code-v'+v+'/'+j.name,sha256:j.sha256,size:j.size}}m.version=v;m.updated=new Date().toISOString().slice(0,10);m.runtime={version:v,protocolVersion:1,archives};fs.writeFileSync(f,JSON.stringify(m,null,2)+'\\n')"
+          cd store
+          node scripts/build-index.mjs
+          git config user.name "Mohamed Alarade"
+          git config user.email "${{ vars.GIRRU_STORE_COMMIT_EMAIL }}"
+          git switch -c "code/v$CODE_VERSION"
+          git commit -am "Code $CODE_VERSION for every platform"
+          git push origin "code/v$CODE_VERSION"
+          gh pr create --repo Dpro-at/girru-store --title "Code $CODE_VERSION" --body "Lists the four Code archives of the draft release code-v$CODE_VERSION with their sizes and SHA-256. Publish the release before merging: Girru offers Code only once the index lists it."
