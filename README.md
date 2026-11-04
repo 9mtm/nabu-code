@@ -14,9 +14,11 @@ The current local preview uses the existing Dpro UI at `http://127.0.0.1:42522` 
 
 ## Release status
 
-The native local preview has been exercised with Dpro sign-in, Code/Chat switching, file save and other application navigation. A self-contained installer, production editor staging, signed release and installed-app updater are not completed by this development preview. The editor is maintained as one internal component, to be shipped through Dpro releases.
+The native local preview has been exercised with Dpro sign-in, Code/Chat switching, file save and other application navigation. A self-contained installer, production editor staging, signed release and installed-app updater are not completed by this development preview. Girru installs the editor from the Girru Store: this repository builds one archive per platform (`.github/workflows/code-store-runtime.yml`) and publishes them, with their SHA-256, as releases of this repository; the Girru Store lists them.
 
-Source publication is not authorized. Upstream components retain their respective licenses. Earlier standalone or reciprocal-product plans in the historical documentation are superseded by the owner's in-Dpro-only decision.
+## License
+
+MIT (see `LICENSE`). The editor in `editor/` is based on Code - OSS by Microsoft Corporation and keeps its own MIT License (`editor/LICENSE.txt`) and third-party notices (`editor/ThirdPartyNotices.txt`). Other upstream components keep their own licenses.
 
 ## Documentation
 
