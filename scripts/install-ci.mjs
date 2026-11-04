@@ -11,7 +11,9 @@ function install(dir,scripts=false){
 }
 install('');install('build');
 const {dirs}=await import('../editor/build/npm/dirs.ts');
-for(const dir of dirs.filter(d=>d.startsWith('extensions')&&!d.startsWith('extensions/copilot')&&fs.existsSync(path.join(editor,d,'package-lock.json'))))install(dir);
+// Extensions keep their install scripts: the git extension's @vscode/fs-copyfile builds its native
+// vscode_fs.node there, and without it Source Control fails to start (Code 1.0.0, 2026-11-04).
+for(const dir of dirs.filter(d=>d.startsWith('extensions')&&!d.startsWith('extensions/copilot')&&fs.existsSync(path.join(editor,d,'package-lock.json'))))install(dir,true);
 install('remote',true);
 const {ensureElectronTypes}=await import('../editor/build/npm/electronTypes.ts');await ensureElectronTypes();
 console.log('Locked editor build and Node server dependencies installed.');
