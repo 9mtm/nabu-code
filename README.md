@@ -14,7 +14,7 @@ The current local preview uses the existing Dpro UI at `http://127.0.0.1:42522` 
 
 ## Release status
 
-The native local preview has been exercised with Dpro sign-in, Code/Chat switching, file save and other application navigation. A self-contained installer, production editor staging, signed release and installed-app updater are not completed by this development preview. Girru installs the editor from the Girru Store: this repository builds one archive per platform (`.github/workflows/code-store-runtime.yml`) and publishes it as a release of Dpro-at/girru-store.
+The native local preview has been exercised with Dpro sign-in, Code/Chat switching, file save and other application navigation. A self-contained installer, production editor staging, signed release and installed-app updater are not completed by this development preview. Girru installs the editor from the Girru Store: this repository builds one archive per platform (`.github/workflows/code-store-runtime.yml`) and publishes them, with their SHA-256, as releases of this repository; the Girru Store lists them.
 
 ## License
 

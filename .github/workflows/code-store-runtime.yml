@@ -1,8 +1,8 @@
 name: Code for the Girru Store
 # CODE-STORE-01: builds the Code editor runtime once per platform, packs it with Girru's own
-# packer (plain files only, size + SHA-256), and optionally drafts a release of
-# Dpro-at/girru-store with the four archives plus a pull request that lists them in the
-# Store's index. Girru then installs Code from the Store; the Girru release no longer carries it.
+# packer (plain files only, size + SHA-256), and optionally drafts a release of this
+# repository with the four archives, their .sha256 files and the runtime entry for the
+# Girru Store's index. Girru then installs Code from the Store; the Girru release no longer carries it.
 on:
   workflow_dispatch:
     inputs:
@@ -15,7 +15,7 @@ on:
         required: true
         type: string
       publish:
-        description: Draft the girru-store release and open its index pull request
+        description: Draft a release of this repository with the four archives
         type: boolean
         default: false
 permissions:
@@ -107,6 +107,9 @@ jobs:
     needs: build
     if: ${{ inputs.publish }}
     runs-on: ubuntu-latest
+    # Only this job writes, and only a draft release of this repository.
+    permissions:
+      contents: write
     env:
       CODE_VERSION: ${{ inputs.version }}
     steps:
@@ -115,27 +118,13 @@ jobs:
           pattern: code-*
           path: store-out
           merge-multiple: true
-      - name: Check all four platforms and write SHA256SUMS
+      - name: Check all four platforms; write the .sha256 files and the Store's runtime entry
         shell: bash
         run: |
-          node -e "const fs=require('fs'),crypto=require('crypto');const v=process.env.CODE_VERSION,lines=[];for(const p of ['darwin-arm64','darwin-x64','win32-x64','linux-x64']){const j=JSON.parse(fs.readFileSync('store-out/girru-code-'+v+'-'+p+'.json','utf8'));const b=fs.readFileSync('store-out/'+j.name);if(j.version!==v||j.platform!==p||b.length!==j.size||crypto.createHash('sha256').update(b).digest('hex')!==j.sha256)throw Error('archive does not match its record: '+p);lines.push(j.sha256+'  '+j.name)}fs.writeFileSync('store-out/SHA256SUMS.txt',lines.join('\\n')+'\\n')"
+          node -e "const fs=require('fs'),crypto=require('crypto');const v=process.env.CODE_VERSION,repo=process.env.GITHUB_REPOSITORY,lines=[],archives={};for(const p of ['darwin-arm64','darwin-x64','win32-x64','linux-x64']){const j=JSON.parse(fs.readFileSync('store-out/girru-code-'+v+'-'+p+'.json','utf8'));const b=fs.readFileSync('store-out/'+j.name);if(j.version!==v||j.platform!==p||b.length!==j.size||crypto.createHash('sha256').update(b).digest('hex')!==j.sha256)throw Error('archive does not match its record: '+p);fs.writeFileSync('store-out/'+j.name+'.sha256',j.sha256+'  '+j.name+'\\n');lines.push(j.sha256+'  '+j.name);archives[p]={url:'https://github.com/'+repo+'/releases/download/code-v'+v+'/'+j.name,sha256:j.sha256,size:j.size}}fs.writeFileSync('store-out/SHA256SUMS.txt',lines.join('\\n')+'\\n');fs.writeFileSync('store-out/girru-store-runtime.json',JSON.stringify({version:v,protocolVersion:1,archives},null,2)+'\\n')"
           cd store-out && sha256sum -c SHA256SUMS.txt
-      - name: Draft the release in girru-store
+          { echo '### Runtime entry for girru-store apps/code/manifest.json'; echo '```json'; cat girru-store-runtime.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Draft the release in this repository
         env:
-          GH_TOKEN: ${{ secrets.GIRRU_STORE_RELEASE_TOKEN }}
-        run: gh release create "code-v$CODE_VERSION" store-out/*.tar.gz store-out/SHA256SUMS.txt --repo Dpro-at/girru-store --draft --title "Code $CODE_VERSION" --notes "The Code editor for Girru, one archive per platform. Girru checks each archive against the size and SHA-256 in the Store's index; the same checksums are in SHA256SUMS.txt."
-      - name: Open the index pull request in girru-store
-        env:
-          GH_TOKEN: ${{ secrets.GIRRU_STORE_RELEASE_TOKEN }}
-        shell: bash
-        run: |
-          gh repo clone Dpro-at/girru-store store -- --depth 1
-          node -e "const fs=require('fs');const v=process.env.CODE_VERSION,f='store/apps/code/manifest.json',m=JSON.parse(fs.readFileSync(f,'utf8')),archives={};for(const p of ['darwin-arm64','darwin-x64','win32-x64','linux-x64']){const j=JSON.parse(fs.readFileSync('store-out/girru-code-'+v+'-'+p+'.json','utf8'));archives[p]={url:'https://github.com/Dpro-at/girru-store/releases/download/code-v'+v+'/'+j.name,sha256:j.sha256,size:j.size}}m.version=v;m.updated=new Date().toISOString().slice(0,10);m.runtime={version:v,protocolVersion:1,archives};fs.writeFileSync(f,JSON.stringify(m,null,2)+'\\n')"
-          cd store
-          node scripts/build-index.mjs
-          git config user.name "Mohamed Alarade"
-          git config user.email "${{ vars.GIRRU_STORE_COMMIT_EMAIL }}"
-          git switch -c "code/v$CODE_VERSION"
-          git commit -am "Code $CODE_VERSION for every platform"
-          git push origin "code/v$CODE_VERSION"
-          gh pr create --repo Dpro-at/girru-store --title "Code $CODE_VERSION" --body "Lists the four Code archives of the draft release code-v$CODE_VERSION with their sizes and SHA-256. Publish the release before merging: Girru offers Code only once the index lists it."
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "code-v$CODE_VERSION" store-out/*.tar.gz store-out/*.sha256 store-out/SHA256SUMS.txt store-out/girru-store-runtime.json --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --title "Code $CODE_VERSION" --notes "The Code editor for Girru, one archive per platform, each with its .sha256 file. Girru installs it from the Girru Store and checks every archive against the size and SHA-256 in the Store's index. girru-store-runtime.json is the runtime entry for the Store."
